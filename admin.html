@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>博客后台 - LingDad's Blog</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; background:#f0f2f5; color:#333; }
+
+/* 登录 */
+.login-page { display:flex; justify-content:center; align-items:center; min-height:100vh; }
+.login-box { background:#fff; padding:40px; border-radius:12px; box-shadow:0 2px 12px rgba(0,0,0,0.1); width:400px; }
+.login-box h1 { font-size:1.5rem; margin-bottom:8px; text-align:center; }
+.login-box p { color:#999; text-align:center; margin-bottom:24px; font-size:0.9rem; }
+.login-box input { width:100%; padding:12px 16px; border:1px solid #ddd; border-radius:8px; font-size:0.95rem; margin-bottom:12px; }
+.login-box button { width:100%; padding:12px; background:#2d5a27; color:#fff; border:none; border-radius:8px; font-size:1rem; cursor:pointer; }
+.login-box button:hover { background:#3d7a35; }
+.login-box .hint { color:#999; font-size:0.8rem; margin-top:12px; text-align:center; }
+.login-box .hint a { color:#2d5a27; }
+
+/* 导航 */
+.navbar { background:#1a1a2e; color:#fff; padding:14px 24px; display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:100; }
+.navbar h1 { font-size:1.15rem; }
+.navbar-links a { color:#aaa; text-decoration:none; font-size:0.9rem; margin-left:16px; }
+.navbar-links a:hover { color:#fff; }
+
+/* 主体 */
+.container { max-width:960px; margin:24px auto; padding:0 24px; }
+.btn { padding:8px 20px; border:none; border-radius:6px; cursor:pointer; font-size:0.9rem; transition:all 0.2s; display:inline-flex; align-items:center; gap:4px; }
+.btn-primary { background:#2d5a27; color:#fff; }
+.btn-primary:hover { background:#3d7a35; }
+.btn-publish { background:#e67e22; color:#fff; }
+.btn-publish:hover { background:#d35400; }
+.btn-danger { background:#e74c3c; color:#fff; }
+.btn-danger:hover { background:#c0392b; }
+.btn-secondary { background:#666; color:#fff; }
+.btn-secondary:hover { background:#555; }
+
+/* 文章列表 */
+.post-list { background:#fff; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.06); overflow:hidden; }
+.post-item { display:flex; justify-content:space-between; align-items:center; padding:16px 24px; border-bottom:1px solid #f0f0f0; }
+.post-item:last-child { border-bottom:none; }
+.post-item:hover { background:#fafafa; }
+.post-info h3 { font-size:1rem; margin-bottom:4px; }
+.post-info .meta { font-size:0.85rem; color:#999; }
+.post-actions { display:flex; gap:8px; flex-shrink:0; }
+
+/* 编辑器 */
+.editor { display:none; background:#fff; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.06); padding:32px; margin-bottom:24px; }
+.editor.active { display:block; }
+.form-row { margin-bottom:16px; }
+.form-row label { display:block; font-size:0.9rem; color:#666; margin-bottom:6px; font-weight:500; }
+.form-row input, .form-row textarea { width:100%; padding:10px 14px; border:1px solid #ddd; border-radius:8px; font-size:1rem; font-family:inherit; }
+.form-row input:focus, .form-row textarea:focus { outline:none; border-color:#2d5a27; box-shadow:0 0 0 2px rgba(45,90,39,0.15); }
+.form-row textarea { min-height:420px; line-height:1.8; resize:vertical; }
+.form-actions { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+.slug-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+
+/* Toast */
+.toast { position:fixed; top:20px; right:20px; padding:14px 24px; border-radius:8px; color:#fff; font-size:0.95rem; z-index:200; transform:translateX(120%); transition:transform 0.3s ease; max-width:400px; }
+.toast.show { transform:translateX(0); }
+.toast.success { background:#27ae60; }
+.toast.error { background:#e74c3c; }
+
+/* 遮罩 */
+.overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:150; justify-content:center; align-items:center; }
+.overlay.active { display:flex; }
+.overlay .spinner { color:#fff; font-size:1.2rem; text-align:center; line-height:2; }
+
+.header-actions { display:flex; gap:12px; margin-bottom:24px; }
+
+.hidden { display:none !important; }
+
+@media (max-width:600px) {
+    .slug-row { grid-template-columns:1fr; }
+    .post-item { flex-direction:column; align-items:flex-start; gap:12px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ===== 登录页 ===== -->
+<div id="loginPage" class="login-page">
+    <div class="login-box">
+        <h1>🦂 博客后台</h1>
+        <p>使用 GitHub Personal Access Token 登录</p>
+        <input type="password" id="tokenInput" placeholder="粘贴你的 GitHub Token">
+        <button onclick="doLogin()">登录</button>
+        <p class="hint">
+            没有 Token？去 <a href="https://github.com/settings/tokens/new?scopes=repo&description=LingDad-Blog-Admin" target="_blank">GitHub 创建一个</a>
+            <br>勾选 <b>repo</b> 权限即可
+        </p>
+    </div>
+</div>
+
+<!-- ===== 管理页 ===== -->
+<div id="adminPage" class="hidden">
+    <nav class="navbar">
+        <h1>🦂 博客后台</h1>
+        <div class="navbar-links">
+            <a href="https://lingdad.github.io" target="_blank">🌐 查看博客</a>
+            <a href="#" onclick="doLogout()">退出</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="header-actions">
+            <button class="btn btn-primary" onclick="showEditor()">✏️ 写新文章</button>
+        </div>
+
+        <div class="editor" id="editor">
+            <h2 id="editorTitle" style="margin-bottom:20px;">写新文章</h2>
+            <input type="hidden" id="editingSlug" value="">
+            <input type="hidden" id="editingSha" value="">
+            <div class="form-row">
+                <label>标题</label>
+                <input type="text" id="postTitle" placeholder="文章标题">
+            </div>
+            <div class="slug-row">
+                <div class="form-row">
+                    <label>作者</label>
+                    <input type="text" id="postAuthor" value="十月天蝎">
+                </div>
+                <div class="form-row">
+                    <label>日期</label>
+                    <input type="date" id="postDate">
+                </div>
+                <div class="form-row">
+                    <label>文件名（slug）</label>
+                    <input type="text" id="postSlug" placeholder="英文短名，如 my-story">
+                </div>
+            </div>
+            <div class="form-row">
+                <label>正文 <span style="color:#999;font-weight:normal;">段落之间空一行</span></label>
+                <textarea id="postContent" placeholder="在这里写文章内容..."></textarea>
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-publish" onclick="publishPost()">🚀 发表</button>
+                <button class="btn btn-secondary" onclick="hideEditor()">取消</button>
+                <span style="color:#999;font-size:0.85rem;margin-left:8px;">发表后约1分钟自动生效</span>
+            </div>
+        </div>
+
+        <div class="post-list" id="postList">
+            <div style="padding:40px;text-align:center;color:#999;">加载中...</div>
+        </div>
+    </div>
+</div>
+
+<!-- 遮罩 -->
+<div class="overlay" id="overlay">
+    <div class="spinner">🚀 正在发表...<br>提交到 GitHub，等待自动构建</div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const REPO = 'LingDad/LingDad.github.io';
+const API = 'https://api.github.com';
+const BRANCH = 'master';
+let TOKEN = '';
+
+// ===== 登录 =====
+function doLogin() {
+    const t = document.getElementById('tokenInput').value.trim();
+    if (!t) { showToast('请输入 Token', 'error'); return; }
+    TOKEN = t;
+    // 验证 token
+    fetch(`${API}/repos/${REPO}`, { headers: authHeaders() })
+        .then(r => {
+            if (!r.ok) throw new Error('Token 无效或没有仓库权限');
+            return r.json();
+        })
+        .then(() => {
+            localStorage.setItem('blog_token', TOKEN);
+            showAdmin();
+        })
+        .catch(e => showToast(e.message, 'error'));
+}
+
+function doLogout() {
+    TOKEN = '';
+    localStorage.removeItem('blog_token');
+    document.getElementById('adminPage').classList.add('hidden');
+    document.getElementById('loginPage').style.display = 'flex';
+    document.getElementById('tokenInput').value = '';
+}
+
+function showAdmin() {
+    document.getElementById('loginPage').style.display = 'none';
+    document.getElementById('adminPage').classList.remove('hidden');
+    loadPosts();
+}
+
+function authHeaders() {
+    return {
+        'Authorization': `token ${TOKEN}`,
+        'Accept': 'application/vnd.github.v3+json'
+    };
+}
+
+// ===== 自动登录 =====
+(function(){
+    const saved = localStorage.getItem('blog_token');
+    if (saved) {
+        TOKEN = saved;
+        fetch(`${API}/repos/${REPO}`, { headers: authHeaders() })
+            .then(r => { if (r.ok) showAdmin(); })
+            .catch(() => {});
+    }
+})();
+
+// ===== 文章操作 =====
+async function loadPosts() {
+    try {
+        const resp = await fetch(`${API}/repos/${REPO}/contents/content?ref=${BRANCH}`, { headers: authHeaders() });
+        if (!resp.ok) {
+            document.getElementById('postList').innerHTML = '<div style="padding:40px;text-align:center;color:#999;">content/ 目录为空</div>';
+            return;
+        }
+        const files = await resp.json();
+        const mdFiles = files.filter(f => f.name.endsWith('.md'));
+
+        // 并发获取所有文件内容
+        const posts = await Promise.all(mdFiles.map(async f => {
+            const r = await fetch(f.download_url);
+            const text = await r.text();
+            const parsed = parseFrontmatter(text);
+            return { ...parsed.meta, content: parsed.body.trim(), sha: f.sha, filename: f.name };
+        }));
+
+        posts.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+        const list = document.getElementById('postList');
+        if (posts.length === 0) {
+            list.innerHTML = '<div style="padding:40px;text-align:center;color:#999;">还没有文章</div>';
+            return;
+        }
+        list.innerHTML = posts.map(p => `
+            <div class="post-item">
+                <div class="post-info">
+                    <h3>${esc(p.title || p.slug || '')}</h3>
+                    <div class="meta">${esc(p.author || '')} · ${p.date || ''} · ${p.slug || ''}</div>
+                </div>
+                <div class="post-actions">
+                    <button class="btn btn-secondary" onclick='editPost(${JSON.stringify(JSON.stringify(p))})'>编辑</button>
+                    <button class="btn btn-danger" onclick="deletePost('${p.slug}','${p.sha}')">删除</button>
+                </div>
+            </div>
+        `).join('');
+    } catch(e) {
+        showToast('加载失败: ' + e.message, 'error');
+    }
+}
+
+function parseFrontmatter(text) {
+    const m = text.match(/^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/);
+    if (!m) return { meta: {}, body: text };
+    const meta = {};
+    m[1].split('\n').forEach(line => {
+        const idx = line.indexOf(':');
+        if (idx > 0) meta[line.slice(0, idx).trim()] = line.slice(idx + 1).trim();
+    });
+    return { meta, body: m[2] };
+}
+
+// ===== 编辑器 =====
+const today = new Date().toISOString().split('T')[0];
+document.getElementById('postDate').value = today;
+
+function showEditor(post) {
+    const ed = document.getElementById('editor');
+    if (post) {
+        document.getElementById('editorTitle').textContent = '编辑文章';
+        document.getElementById('editingSlug').value = post.slug;
+        document.getElementById('editingSha').value = post.sha || '';
+        document.getElementById('postTitle').value = post.title || '';
+        document.getElementById('postAuthor').value = post.author || '十月天蝎';
+        document.getElementById('postDate').value = post.date || today;
+        document.getElementById('postSlug').value = post.slug || '';
+        document.getElementById('postContent').value = post.content || '';
+        document.getElementById('postSlug').readOnly = true;
+    } else {
+        document.getElementById('editorTitle').textContent = '写新文章';
+        document.getElementById('editingSlug').value = '';
+        document.getElementById('editingSha').value = '';
+        document.getElementById('postTitle').value = '';
+        document.getElementById('postAuthor').value = '十月天蝎';
+        document.getElementById('postDate').value = today;
+        document.getElementById('postSlug').value = '';
+        document.getElementById('postContent').value = '';
+        document.getElementById('postSlug').readOnly = false;
+    }
+    ed.classList.add('active');
+    document.getElementById('postTitle').focus();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function hideEditor() {
+    document.getElementById('editor').classList.remove('active');
+}
+
+function editPost(jsonStr) {
+    showEditor(JSON.parse(jsonStr));
+}
+
+// ===== 发表 =====
+async function publishPost() {
+    const title = document.getElementById('postTitle').value.trim();
+    const author = document.getElementById('postAuthor').value.trim();
+    const date = document.getElementById('postDate').value;
+    const slug = document.getElementById('postSlug').value.trim();
+    const content = document.getElementById('postContent').value.trim();
+    const sha = document.getElementById('editingSha').value;
+
+    if (!title) { showToast('请填写标题', 'error'); return; }
+    if (!slug) { showToast('请填写文件名', 'error'); return; }
+    if (!/^[a-z0-9-]+$/.test(slug)) { showToast('slug 只能包含小写字母、数字和横线', 'error'); return; }
+    if (!content) { showToast('请填写正文', 'error'); return; }
+
+    const md = `---\ntitle: ${title}\nauthor: ${author}\ndate: ${date}\nslug: ${slug}\n---\n\n${content}\n`;
+
+    document.getElementById('overlay').classList.add('active');
+    try {
+        const body = {
+            message: `发表: ${title}`,
+            content: btoa(unescape(encodeURIComponent(md))),
+            branch: BRANCH
+        };
+        if (sha) body.sha = sha;
+
+        const resp = await fetch(`${API}/repos/${REPO}/contents/content/${slug}.md`, {
+            method: 'PUT',
+            headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+
+        if (!resp.ok) {
+            const err = await resp.json();
+            throw new Error(err.message || '发表失败');
+        }
+
+        showToast('🎉 发表成功！约1分钟后博客自动更新');
+        hideEditor();
+        loadPosts();
+    } catch(e) {
+        showToast(e.message, 'error');
+    }
+    document.getElementById('overlay').classList.remove('active');
+}
+
+// ===== 删除 =====
+async function deletePost(slug, sha) {
+    if (!confirm(`确定删除「${slug}」？`)) return;
+    document.getElementById('overlay').classList.add('active');
+    try {
+        const resp = await fetch(`${API}/repos/${REPO}/contents/content/${slug}.md`, {
+            method: 'DELETE',
+            headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: `删除: ${slug}`, sha, branch: BRANCH })
+        });
+        if (!resp.ok) throw new Error('删除失败');
+        showToast('已删除，约1分钟后博客更新');
+        loadPosts();
+    } catch(e) {
+        showToast(e.message, 'error');
+    }
+    document.getElementById('overlay').classList.remove('active');
+}
+
+// ===== 工具 =====
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+function showToast(msg, type='success') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast ' + type + ' show';
+    setTimeout(() => t.classList.remove('show'), 4000);
+}
+</script>
+</body>
+</html>

@@ -377,7 +377,7 @@ class BlogAdminHandler(BaseHTTPRequestHandler):
                     self.send_header('Location', '/login')
                     self.end_headers()
                 else:
-                    self.send_html(LOGIN_HTML.format(error=''))
+                    self.send_html(LOGIN_HTML.replace('{error}', ''))
         elif self.path == '/logout':
             self.send_response(302)
             self.send_header('Set-Cookie', 'session=; Max-Age=0; Path=/')
@@ -406,7 +406,7 @@ class BlogAdminHandler(BaseHTTPRequestHandler):
                 self.send_header('Location', '/')
                 self.end_headers()
             else:
-                self.send_html(LOGIN_HTML.format(error='<p class="error">密码错误</p>'))
+                self.send_html(LOGIN_HTML.replace('{error}', '<p class="error">密码错误</p>'))
             return
 
         if not self.check_auth():
