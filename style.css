@@ -40,6 +40,16 @@ header {
     font-size: 1.75rem;
     font-weight: 700;
     letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+}
+
+.site-logo {
+    width: 40px;
+    height: 40px;
+    margin-right: 10px;
+    vertical-align: middle;
+    border-radius: 50%;
 }
 
 .site-title a:hover { color: var(--accent); }
