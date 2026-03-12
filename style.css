@@ -58,6 +58,7 @@ header {
     color: var(--text-light);
     font-size: 0.95rem;
     margin-top: 4px;
+    padding-left: 50px;
 }
 
 /* ===== Post List ===== */
