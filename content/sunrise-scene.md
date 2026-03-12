@@ -2,6 +2,7 @@
 title: 日出即景
 author: 十月天蝎
 date: 2026-03-11
+created: 2026-03-11T12:00:00Z
 slug: sunrise-scene
 ---
 

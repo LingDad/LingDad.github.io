@@ -191,6 +191,7 @@ def build():
         title = meta.get('title', fname.replace('.md', ''))
         author = meta.get('author', '佚名')
         date = meta.get('date', '')
+        created = meta.get('created', '')
         slug = meta.get('slug', fname.replace('.md', ''))
 
         content_html = md_to_html(body)
@@ -200,13 +201,14 @@ def build():
             'title': title,
             'author': author,
             'date': date,
+            'created': created,
             'slug': slug,
             'excerpt': excerpt,
             'content_html': content_html,
         })
 
-    # 按日期降序排列
-    posts.sort(key=lambda p: p['date'], reverse=True)
+    # 按日期降序，同日期按创建时间降序（新发表的排前面）
+    posts.sort(key=lambda p: (p['date'], p['created'] or '0'), reverse=True)
 
     # 生成文章页
     for post in posts:

@@ -2,6 +2,7 @@
 title: 寒光初照
 author: 十月天蝎
 date: 2026-03-12
+created: 2026-03-12T14:00:00Z
 slug: story-1
 ---
 

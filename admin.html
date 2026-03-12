@@ -370,7 +370,8 @@ async function publishPost() {
     if (!/^[a-z0-9-]+$/.test(slug)) { showToast('slug 只能包含小写字母、数字和横线', 'error'); return; }
     if (!content) { showToast('请填写正文', 'error'); return; }
 
-    const md = `---\ntitle: ${title}\nauthor: ${author}\ndate: ${date}\nslug: ${slug}\n---\n\n${content}\n`;
+    const now = new Date().toISOString();
+    const md = `---\ntitle: ${title}\nauthor: ${author}\ndate: ${date}\ncreated: ${now}\nslug: ${slug}\n---\n\n${content}\n`;
 
     document.getElementById('overlay').classList.add('active');
     try {

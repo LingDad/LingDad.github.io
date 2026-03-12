@@ -2,6 +2,7 @@
 title: 二十年后的家乡
 author: 十月天蝎
 date: 2026-03-11
+created: 2026-03-11T11:00:00Z
 slug: hometown-twenty-years
 ---
 

@@ -2,6 +2,7 @@
 title: "漫画"老师
 author: 十月天蝎
 date: 2026-03-11
+created: 2026-03-11T10:00:00Z
 slug: manga-teacher
 ---
 
