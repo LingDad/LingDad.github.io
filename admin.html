@@ -57,6 +57,18 @@ body { font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; bac
 .form-actions { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
 .slug-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
 
+/* 草稿列表 */
+.drafts-section { margin-bottom:24px; }
+.drafts-section h3 { font-size:1rem; color:#666; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+.draft-list { background:#fff; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.06); overflow:hidden; border-left:4px solid #e67e22; }
+.draft-item { display:flex; justify-content:space-between; align-items:center; padding:14px 24px; border-bottom:1px solid #f0f0f0; }
+.draft-item:last-child { border-bottom:none; }
+.draft-item:hover { background:#fefaf5; }
+.draft-info h4 { font-size:0.95rem; margin-bottom:2px; }
+.draft-info .meta { font-size:0.8rem; color:#999; }
+.draft-badge { background:#e67e22; color:#fff; font-size:0.7rem; padding:2px 8px; border-radius:10px; }
+.autosave-hint { color:#999; font-size:0.8rem; font-style:italic; }
+
 /* Toast */
 .toast { position:fixed; top:20px; right:20px; padding:14px 24px; border-radius:8px; color:#fff; font-size:0.95rem; z-index:200; transform:translateX(120%); transition:transform 0.3s ease; max-width:400px; }
 .toast.show { transform:translateX(0); }
@@ -137,9 +149,16 @@ body { font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; bac
             </div>
             <div class="form-actions">
                 <button class="btn btn-publish" onclick="publishPost()">🚀 发表</button>
+                <button class="btn btn-primary" onclick="saveDraft()">💾 保存草稿</button>
                 <button class="btn btn-secondary" onclick="hideEditor()">取消</button>
-                <span style="color:#999;font-size:0.85rem;margin-left:8px;">发表后约1分钟自动生效</span>
+                <span class="autosave-hint" id="autosaveHint"></span>
             </div>
+        </div>
+
+        <!-- 草稿列表 -->
+        <div class="drafts-section hidden" id="draftsSection">
+            <h3>📝 草稿箱 <span class="draft-badge" id="draftCount">0</span></h3>
+            <div class="draft-list" id="draftList"></div>
         </div>
 
         <div class="post-list" id="postList">
@@ -190,6 +209,7 @@ function showAdmin() {
     document.getElementById('loginPage').style.display = 'none';
     document.getElementById('adminPage').classList.remove('hidden');
     loadPosts();
+    renderDrafts();
 }
 
 function authHeaders() {
@@ -341,6 +361,7 @@ async function publishPost() {
         }
 
         showToast('🎉 发表成功！约1分钟后博客自动更新');
+        clearDraftFor(slug);
         hideEditor();
         loadPosts();
     } catch(e) {
@@ -366,6 +387,141 @@ async function deletePost(slug, sha) {
         showToast(e.message, 'error');
     }
     document.getElementById('overlay').classList.remove('active');
+}
+
+// ===== 草稿 =====
+const DRAFT_KEY = 'blog_drafts';
+
+function getDrafts() {
+    try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || '{}'); } catch(e) { return {}; }
+}
+
+function saveDrafts(drafts) {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(drafts));
+}
+
+function saveDraft() {
+    const title = document.getElementById('postTitle').value.trim();
+    const author = document.getElementById('postAuthor').value.trim();
+    const date = document.getElementById('postDate').value;
+    const slug = document.getElementById('postSlug').value.trim();
+    const content = document.getElementById('postContent').value;
+
+    if (!title && !content) { showToast('标题和正文都是空的，没什么好保存的', 'error'); return; }
+
+    const draftId = document.getElementById('editingSlug').value || slug || ('draft-' + Date.now());
+    const drafts = getDrafts();
+    drafts[draftId] = { title, author, date, slug, content, savedAt: new Date().toLocaleString('zh-CN') };
+    saveDrafts(drafts);
+    showToast('💾 草稿已保存');
+    renderDrafts();
+}
+
+function autoSaveDraft() {
+    const title = document.getElementById('postTitle').value.trim();
+    const content = document.getElementById('postContent').value;
+    if (!title && !content) return;
+
+    const slug = document.getElementById('postSlug').value.trim();
+    const draftId = document.getElementById('editingSlug').value || slug || 'autosave';
+    const drafts = getDrafts();
+    drafts[draftId] = {
+        title,
+        author: document.getElementById('postAuthor').value.trim(),
+        date: document.getElementById('postDate').value,
+        slug,
+        content,
+        savedAt: new Date().toLocaleString('zh-CN'),
+        auto: true
+    };
+    saveDrafts(drafts);
+    document.getElementById('autosaveHint').textContent = '已自动保存 ' + new Date().toLocaleTimeString('zh-CN');
+}
+
+function loadDraft(draftId) {
+    const drafts = getDrafts();
+    const d = drafts[draftId];
+    if (!d) return;
+    showEditor({
+        title: d.title || '',
+        author: d.author || '十月天蝎',
+        date: d.date || today,
+        slug: d.slug || '',
+        content: d.content || '',
+        sha: ''
+    });
+    // 恢复后不锁定 slug
+    document.getElementById('postSlug').readOnly = false;
+    document.getElementById('editingSlug').value = '';
+    showToast('草稿已载入，继续编辑吧');
+}
+
+function deleteDraft(draftId) {
+    const drafts = getDrafts();
+    delete drafts[draftId];
+    saveDrafts(drafts);
+    renderDrafts();
+    showToast('草稿已删除');
+}
+
+function renderDrafts() {
+    const drafts = getDrafts();
+    const keys = Object.keys(drafts).sort((a,b) => {
+        return (drafts[b].savedAt || '').localeCompare(drafts[a].savedAt || '');
+    });
+    const section = document.getElementById('draftsSection');
+    const list = document.getElementById('draftList');
+    const count = document.getElementById('draftCount');
+
+    if (keys.length === 0) {
+        section.classList.add('hidden');
+        return;
+    }
+
+    section.classList.remove('hidden');
+    count.textContent = keys.length;
+    list.innerHTML = keys.map(id => {
+        const d = drafts[id];
+        const title = d.title || '(无标题)';
+        const autoLabel = d.auto ? ' · 自动保存' : '';
+        return `
+            <div class="draft-item">
+                <div class="draft-info">
+                    <h4>${esc(title)}</h4>
+                    <div class="meta">${d.savedAt || ''}${autoLabel}</div>
+                </div>
+                <div class="post-actions">
+                    <button class="btn btn-primary" onclick="loadDraft('${id}')" style="padding:6px 14px;">继续写</button>
+                    <button class="btn btn-danger" onclick="deleteDraft('${id}')" style="padding:6px 14px;">删除</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// 自动保存：每30秒，如果编辑器打开且有内容
+let autosaveTimer = null;
+function startAutosave() {
+    if (autosaveTimer) clearInterval(autosaveTimer);
+    autosaveTimer = setInterval(() => {
+        if (document.getElementById('editor').classList.contains('active')) {
+            autoSaveDraft();
+        }
+    }, 30000);
+}
+startAutosave();
+
+// 发表成功后清理对应草稿
+function clearDraftFor(slug) {
+    const drafts = getDrafts();
+    // 清理匹配的草稿
+    Object.keys(drafts).forEach(id => {
+        if (id === slug || drafts[id].slug === slug) delete drafts[id];
+    });
+    // 也清理 autosave
+    delete drafts['autosave'];
+    saveDrafts(drafts);
+    renderDrafts();
 }
 
 // ===== 工具 =====
