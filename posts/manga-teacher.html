@@ -12,7 +12,7 @@
 <body>
     <header>
         <div class="container">
-            <h1 class="site-title"><a href="../index.html"><img src="../favicon.svg" alt="十月天蝎" class="site-logo">LingDad's Blog</a></h1>
+            <div class="header-row"><h1 class="site-title"><a href="../index.html"><img src="../favicon.svg" alt="十月天蝎" class="site-logo">LingDad's Blog</a></h1><button class="theme-toggle" id="themeToggle" aria-label="切换深色模式">☀️</button></div>
             <p class="site-desc">记录想法，分享故事</p>
         </div>
     </header>
@@ -50,5 +50,13 @@
             <p>&copy; 2026 LingDad's Blog</p>
         </div>
     </footer>
+    <script>
+    (function(){
+        var btn=document.getElementById("themeToggle");
+        var saved=localStorage.getItem("theme");
+        if(saved==="dark"||(!saved&&window.matchMedia("(prefers-color-scheme: dark)").matches)){document.documentElement.setAttribute("data-theme","dark");btn.textContent="🌙";}
+        btn.addEventListener("click",function(){var d=document.documentElement.getAttribute("data-theme")==="dark";if(d){document.documentElement.removeAttribute("data-theme");btn.textContent="☀️";localStorage.setItem("theme","light");}else{document.documentElement.setAttribute("data-theme","dark");btn.textContent="🌙";localStorage.setItem("theme","dark");}});
+    })();
+    </script>
 </body>
 </html>

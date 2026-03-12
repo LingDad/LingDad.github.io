@@ -11,6 +11,15 @@
     --max-width: 720px;
 }
 
+[data-theme="dark"] {
+    --bg: #1a1a2e;
+    --text: #e0e0e0;
+    --text-light: #999;
+    --accent: #5dbb63;
+    --card-bg: #16213e;
+    --border: #2a2a4a;
+}
+
 body {
     font-family: -apple-system, "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
     background: var(--bg);
@@ -36,12 +45,38 @@ header {
     border-bottom: 1px solid var(--border);
 }
 
+.header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
 .site-title {
     font-size: 1.75rem;
     font-weight: 700;
     letter-spacing: -0.02em;
     display: flex;
     align-items: center;
+}
+
+.theme-toggle {
+    background: none;
+    border: 1.5px solid var(--border);
+    border-radius: 50%;
+    width: 38px;
+    height: 38px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.3s, transform 0.3s;
+    flex-shrink: 0;
+}
+
+.theme-toggle:hover {
+    border-color: var(--accent);
+    transform: rotate(30deg);
 }
 
 .site-logo {
