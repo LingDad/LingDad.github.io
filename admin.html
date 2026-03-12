@@ -289,7 +289,9 @@ const today = new Date().toISOString().split('T')[0];
 document.getElementById('postDate').value = today;
 
 function showEditor(post) {
+    currentDraftId = ''; // 重置，让 getDraftId 重新计算
     const ed = document.getElementById('editor');
+    document.getElementById('autosaveHint').textContent = '';
     if (post) {
         document.getElementById('editorTitle').textContent = '编辑文章';
         document.getElementById('editingSlug').value = post.slug;
@@ -400,40 +402,52 @@ function saveDrafts(drafts) {
     localStorage.setItem(DRAFT_KEY, JSON.stringify(drafts));
 }
 
-function saveDraft() {
-    const title = document.getElementById('postTitle').value.trim();
-    const author = document.getElementById('postAuthor').value.trim();
-    const date = document.getElementById('postDate').value;
+// 当前编辑中的草稿ID，确保同一篇文章只有一份草稿
+let currentDraftId = '';
+
+function getDraftId() {
+    // 优先用已有的 draftId（保证整个编辑过程中 key 不变）
+    if (currentDraftId) return currentDraftId;
+    const editing = document.getElementById('editingSlug').value;
     const slug = document.getElementById('postSlug').value.trim();
-    const content = document.getElementById('postContent').value;
+    currentDraftId = editing || slug || ('draft-' + Date.now());
+    return currentDraftId;
+}
 
-    if (!title && !content) { showToast('标题和正文都是空的，没什么好保存的', 'error'); return; }
+function collectFormData() {
+    return {
+        title: document.getElementById('postTitle').value.trim(),
+        author: document.getElementById('postAuthor').value.trim(),
+        date: document.getElementById('postDate').value,
+        slug: document.getElementById('postSlug').value.trim(),
+        content: document.getElementById('postContent').value,
+    };
+}
 
-    const draftId = document.getElementById('editingSlug').value || slug || ('draft-' + Date.now());
+function saveDraft() {
+    const data = collectFormData();
+    if (!data.title && !data.content) { showToast('标题和正文都是空的，没什么好保存的', 'error'); return; }
+
+    const draftId = getDraftId();
     const drafts = getDrafts();
-    drafts[draftId] = { title, author, date, slug, content, savedAt: new Date().toLocaleString('zh-CN') };
+    // 如果 slug 变了，清理旧的 autosave key
+    Object.keys(drafts).forEach(k => {
+        if (k !== draftId && drafts[k].slug === data.slug) delete drafts[k];
+    });
+    drafts[draftId] = { ...data, savedAt: new Date().toLocaleString('zh-CN') };
     saveDrafts(drafts);
     showToast('💾 草稿已保存');
+    document.getElementById('autosaveHint').textContent = '';
     renderDrafts();
 }
 
 function autoSaveDraft() {
-    const title = document.getElementById('postTitle').value.trim();
-    const content = document.getElementById('postContent').value;
-    if (!title && !content) return;
+    const data = collectFormData();
+    if (!data.title && !data.content) return;
 
-    const slug = document.getElementById('postSlug').value.trim();
-    const draftId = document.getElementById('editingSlug').value || slug || 'autosave';
+    const draftId = getDraftId();
     const drafts = getDrafts();
-    drafts[draftId] = {
-        title,
-        author: document.getElementById('postAuthor').value.trim(),
-        date: document.getElementById('postDate').value,
-        slug,
-        content,
-        savedAt: new Date().toLocaleString('zh-CN'),
-        auto: true
-    };
+    drafts[draftId] = { ...data, savedAt: new Date().toLocaleString('zh-CN'), auto: true };
     saveDrafts(drafts);
     document.getElementById('autosaveHint').textContent = '已自动保存 ' + new Date().toLocaleTimeString('zh-CN');
 }
@@ -450,9 +464,10 @@ function loadDraft(draftId) {
         content: d.content || '',
         sha: ''
     });
-    // 恢复后不锁定 slug
+    // 恢复后不锁定 slug，并绑定到同一个 draftId
     document.getElementById('postSlug').readOnly = false;
     document.getElementById('editingSlug').value = '';
+    currentDraftId = draftId;
     showToast('草稿已载入，继续编辑吧');
 }
 
